@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Чтение — оффлайн FB2</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cactus+Classical+Serif&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Roboto+Mono:ital,wght@0,100..700;1,100..700&family=Spectral:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="reader.css">
+<script>
+/* Apply saved theme before first paint */
+(function () {
+    var s = JSON.parse(localStorage.getItem("fb2ReaderSettings") || "{}");
+    var t = s.theme || "auto";
+    if (t === "auto") {
+        t = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    }
+    document.documentElement.classList.add("theme-" + t);
+})();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+}
+</script>
+</head>
+<body>
+
+<header id="reader-header">
+    <div id="header-icons">
+        <button id="shelf-link" type="button" title="Книжная полка" onclick="location.href='./index.html'"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></button>
+        <button id="fullscreen-toggle" type="button" title="Во весь экран" hidden><svg id="fullscreen-enter-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg><svg id="fullscreen-exit-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></svg></button>
+        <button id="toc-toggle" type="button" title="Оглавление"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="4" cy="5" r="1.5" fill="currentColor" stroke="none"/><line x1="9" y1="5" x2="21" y2="5"/><circle cx="4" cy="12" r="1.5" fill="currentColor" stroke="none"/><line x1="9" y1="12" x2="21" y2="12"/><circle cx="4" cy="19" r="1.5" fill="currentColor" stroke="none"/><line x1="9" y1="19" x2="21" y2="19"/></svg></button>
+        <button id="settings-toggle" type="button" title="Настройки"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="9" cy="6" r="2.5" fill="var(--bg-color)" stroke="currentColor" stroke-width="2"/><circle cx="16" cy="12" r="2.5" fill="var(--bg-color)" stroke="currentColor" stroke-width="2"/><circle cx="11" cy="18" r="2.5" fill="var(--bg-color)" stroke="currentColor" stroke-width="2"/></svg></button>
+    </div>
+</header>
+
+<div id="book-container" class="font-cactus align-justify line-height-normal hyphenation-no">
+    <div id="book-enhancements"></div>
+    <script type="application/json" id="book-meta"></script>
+    <article id="book-content" tabindex="-1"></article>
+</div>
+
+<div id="page-nav-prev" class="page-nav" aria-hidden="true">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 56" class="page-nav__arrow"><path d="M2.111 28L15.864 4.5a.999.999 0 0 0-.361-1.365 1.005 1.005 0 0 0-1.369.359L.118 27.444A.98.98 0 0 0 .002 28a.98.98 0 0 0 .116.556l14.016 23.949a1 1 0 0 0 1.369.36.997.997 0 0 0 .361-1.365L2.111 28z"></path></svg>
+</div>
+<div id="page-nav-next" class="page-nav" aria-hidden="true">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 56" class="page-nav__arrow"><path d="M13.889 28L.136 51.5a.999.999 0 0 0 .361 1.365 1.005 1.005 0 0 0 1.369-.359l14.016-23.95A.98.98 0 0 0 15.998 28a.98.98 0 0 0-.116-.556L1.866 3.495a1 1 0 0 0-1.369-.36.997.997 0 0 0-.361 1.365L13.889 28z"></path></svg>
+</div>
+
+<aside id="settings-panel" aria-hidden="true">
+    <div id="settings-header">
+        <h2>Настройки</h2>
+        <button id="settings-close" type="button" title="Закрыть">×</button>
+    </div>
+    <div id="settings-body">
+        <section class="option-group option-group-centered" id="theme-group">
+            <div class="option-buttons theme-swatches">
+                <button class="option-button theme-swatch" data-setting="theme" data-value="auto" title="Системная"><span class="swatch swatch-auto"></span><span class="swatch-label">Авто</span></button>
+                <button class="option-button theme-swatch" data-setting="theme" data-value="light" title="Светлая"><span class="swatch" style="background:#fff"></span><span class="swatch-label">Светлая</span></button>
+                <button class="option-button theme-swatch" data-setting="theme" data-value="parchment" title="Сепия"><span class="swatch" style="background:#f5e6c8"></span><span class="swatch-label">Сепия</span></button>
+                <button class="option-button theme-swatch" data-setting="theme" data-value="gray" title="Серая"><span class="swatch" style="background:#e0e0e0"></span><span class="swatch-label">Серая</span></button>
+                <button class="option-button theme-swatch" data-setting="theme" data-value="dark" title="Тёмная"><span class="swatch" style="background:#1a1a1a"></span><span class="swatch-label">Тёмная</span></button>
+            </div>
+        </section>
+
+        <section class="option-group option-group-centered" id="font-group">
+            <div class="option-buttons" id="font-group-buttons">
+                <button class="option-button" data-setting="font" data-value="cactus" style="font-family:'Cactus Classical Serif',serif; font-size:15px; top:0px">Кактус</button>
+                <button class="option-button" data-setting="font" data-value="spectral" style="font-family:'Spectral',serif; font-size:16px; top:1.5px">Спектрал</button>
+                <button class="option-button" data-setting="font" data-value="inter" style="font-family:'Inter',sans-serif; font-size:14px; top:1.5px">Интер</button>
+                <button class="option-button" data-setting="font" data-value="roboto-mono" style="font-family:'Roboto Mono',monospace; font-size:14.5px; top:1.5px">Робото</button>
+            </div>
+        </section>
+
+        <section class="option-group option-group-inline" id="reading-mode-group">
+            <div class="option-buttons seg-group">
+                <button class="option-button" data-setting="reading-mode" data-value="scroll">Прокрутка</button>
+                <button class="option-button" data-setting="reading-mode" data-value="chapter">Главы</button>
+                <button class="option-button" data-setting="reading-mode" data-value="page">Страницы</button>
+            </div>
+        </section>
+
+        <section class="option-group option-group-inline" id="columns-group">
+            <div class="option-title">Колонки</div>
+            <div class="option-buttons seg-group">
+                <button class="option-button" data-setting="columns" data-value="1" title="Одна">1</button>
+                <button class="option-button" data-setting="columns" data-value="2" title="Две">2</button>
+            </div>
+        </section>
+
+        <section class="option-group option-group-inline" id="font-size-group">
+            <div class="option-title">Размер</div>
+            <div class="option-buttons" id="font-size-buttons">
+                <button class="option-button fs-btn" id="font-size-decrease" title="Уменьшить"><span style="font-size:1em">A</span></button>
+                <span id="font-size-display">20px</span>
+                <button class="option-button fs-btn" id="font-size-increase" title="Увеличить"><span style="font-size:1.5em">A</span></button>
+            </div>
+        </section>
+
+        <section class="option-group option-group-inline" id="line-height-group">
+            <div class="option-title">Интервал</div>
+            <div class="option-buttons seg-group">
+                <button class="option-button lh-icon" data-setting="line-height" data-value="compact" title="Компактный"><svg width="18" height="18" viewBox="0 0 18 18"><line x1="2" y1="4" x2="16" y2="4" stroke="currentColor" stroke-width="1.5"/><line x1="2" y1="9" x2="16" y2="9" stroke="currentColor" stroke-width="1.5"/><line x1="2" y1="14" x2="16" y2="14" stroke="currentColor" stroke-width="1.5"/></svg></button>
+                <button class="option-button lh-icon" data-setting="line-height" data-value="normal" title="Обычный"><svg width="18" height="18" viewBox="0 0 18 18"><line x1="2" y1="3" x2="16" y2="3" stroke="currentColor" stroke-width="1.5"/><line x1="2" y1="9" x2="16" y2="9" stroke="currentColor" stroke-width="1.5"/><line x1="2" y1="15" x2="16" y2="15" stroke="currentColor" stroke-width="1.5"/></svg></button>
+                <button class="option-button lh-icon" data-setting="line-height" data-value="loose" title="Большой"><svg width="18" height="18" viewBox="0 0 18 18"><line x1="2" y1="2" x2="16" y2="2" stroke="currentColor" stroke-width="1.5"/><line x1="2" y1="9" x2="16" y2="9" stroke="currentColor" stroke-width="1.5"/><line x1="2" y1="16" x2="16" y2="16" stroke="currentColor" stroke-width="1.5"/></svg></button>
+            </div>
+        </section>
+
+        <section class="option-group option-group-inline" id="alignment-group">
+            <div class="option-title">Абзац</div>
+            <div class="option-buttons seg-group">
+                <button class="option-button align-icon" data-setting="alignment" data-value="left" title="По левому краю"><svg width="18" height="18" viewBox="0 0 18 18"><line x1="2" y1="3" x2="16" y2="3" stroke="currentColor" stroke-width="1.5"/><line x1="2" y1="7" x2="12" y2="7" stroke="currentColor" stroke-width="1.5"/><line x1="2" y1="11" x2="16" y2="11" stroke="currentColor" stroke-width="1.5"/><line x1="2" y1="15" x2="10" y2="15" stroke="currentColor" stroke-width="1.5"/></svg></button>
+                <button class="option-button align-icon" data-setting="alignment" data-value="justify" title="По ширине"><svg width="18" height="18" viewBox="0 0 18 18"><line x1="2" y1="3" x2="16" y2="3" stroke="currentColor" stroke-width="1.5"/><line x1="2" y1="7" x2="16" y2="7" stroke="currentColor" stroke-width="1.5"/><line x1="2" y1="11" x2="16" y2="11" stroke="currentColor" stroke-width="1.5"/><line x1="2" y1="15" x2="16" y2="15" stroke="currentColor" stroke-width="1.5"/></svg></button>
+            </div>
+        </section>
+
+        <section class="option-group option-group-inline" id="hyphenation-group">
+            <div class="option-title">Переносы</div>
+            <div class="option-buttons seg-group">
+                <button class="option-button" data-setting="hyphenation" data-value="no">Нет</button>
+                <button class="option-button" data-setting="hyphenation" data-value="yes">Да</button>
+            </div>
+        </section>
+
+        <section class="option-group" id="reset-settings-group">
+            <button class="option-button" id="reset-settings-button" type="button">Сбросить настройки</button>
+        </section>
+    </div>
+</aside>
+
+<aside id="toc-panel" aria-hidden="true">
+    <div id="toc-header">
+        <h2>Оглавление</h2>
+        <button id="toc-close" type="button" title="Закрыть">×</button>
+    </div>
+    <nav id="toc-body">
+        <ul id="toc-list"></ul>
+    </nav>
+</aside>
+
+<div id="overlay" aria-hidden="true"></div>
+
+<div id="note-modal" aria-hidden="true">
+    <div id="modal-content">
+        <button id="modal-close" type="button" title="Закрыть">×</button>
+        <div id="modal-body"></div>
+    </div>
+</div>
+
+<footer id="progress-footer">
+    <div id="progress-chapter"></div>
+    <div id="progress-value"></div>
+</footer>
+
+<script src="book-db.js"></script>
+<script src="reader.js" defer></script>
+</body>
+</html>

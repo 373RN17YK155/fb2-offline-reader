@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Книжная полка</title>
+<meta name="description" content="Онлайн и офлайн читалка FB2-книг. Открывайте, читайте, добавляйте на главный экран.">
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/static/favicon-192.png" type="image/png" sizes="192x192">
+<link rel="icon" href="/static/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<style>
+/* ── Themes ── */
+:root {
+    --bg: #fff;
+    --text: #111;
+    --card-bg: #f7f7f7;
+    --card-border: #ddd;
+    --accent: #0066cc;
+    --muted: #888;
+    --danger: #c33;
+}
+html.theme-parchment {
+    --bg: #f9f3e5; --text: #4a3b2c;
+    --card-bg: #f2e7d1; --card-border: #d6c7a6;
+    --accent: #8b4513; --muted: #9a8b70;
+}
+html.theme-gray {
+    --bg: #f0f0f0; --text: #2e2e2e;
+    --card-bg: #e9e9e9; --card-border: #ccc;
+    --accent: #0055aa; --muted: #777;
+}
+html.theme-dark {
+    --bg: #141414; --text: #e0e0e0;
+    --card-bg: #2a2a2a; --card-border: #3a3a3a;
+    --accent: #6db3f2; --muted: #999;
+    --danger: #f55;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { overflow-y: scroll; }
+body {
+    font-family: system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 16px;
+    max-width: 960px;
+    margin: 0 auto;
+}
+
+/* ── Header row ── */
+.shelf-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+    gap: 4px 16px;
+}
+.shelf-header h1 {
+    font-size: 1.4rem;
+}
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+#storage-info {
+    font-size: 0.8rem;
+    color: var(--muted);
+    text-align: right;
+    min-height: 1.2em;
+    line-height: 1.2;
+    margin-bottom: 4px;
+}
+/* ── Theme swatches (mirrors reader.css) ── */
+.theme-swatches {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+.theme-swatch {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    background: transparent;
+    border: none;
+    padding: 2px;
+    cursor: pointer;
+}
+.theme-swatch .swatch {
+    display: block;
+    width: 28px;
+    height: 16px;
+    border-radius: 4px;
+    border: none;
+    box-shadow: 0 0.5px 2px rgba(0, 0, 0, 0.15);
+}
+.theme-swatch .swatch-label {
+    font-size: 0.6rem;
+    opacity: 0.5;
+    color: var(--text);
+    border-bottom: 2px solid transparent;
+    padding-bottom: 1px;
+    line-height: 1;
+}
+.theme-swatch.selected .swatch-label {
+    opacity: 1;
+    border-bottom-color: var(--text);
+}
+.theme-swatch .swatch-auto {
+    background: transparent;
+    overflow: visible;
+    box-shadow: none;
+    clip-path: inset(0 round 4px);
+    filter: drop-shadow(0 0.5px 2px rgba(0, 0, 0, 0.15));
+    position: relative;
+}
+.theme-swatch .swatch-auto::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: #fff;
+    clip-path: polygon(0 0, 100% 0, 0% 100%);
+}
+.theme-swatch .swatch-auto::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: #1a1a1a;
+    clip-path: polygon(100% 0, 100% 100%, 0% 100%);
+}
+
+/* ── Search row ── */
+.search-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+#filter {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+    background: var(--card-bg);
+    color: var(--text);
+}
+#filter::placeholder { color: var(--muted); }
+#filter-clear {
+    padding: 0 12px;
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+    background: var(--card-bg);
+    color: var(--muted);
+    cursor: pointer;
+    line-height: 1;
+    display: none;
+}
+#filter-clear:hover { color: var(--text); }
+
+/* ── Tabs ── */
+.tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 2px solid var(--card-border);
+    margin-bottom: 0;
+}
+.tab {
+    padding: 8px 14px;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    white-space: nowrap;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    font-weight: 500;
+}
+.tab:hover { color: var(--text); }
+.tab.active {
+    color: var(--text);
+    border-bottom-color: var(--accent);
+    background: var(--card-bg);
+}
+@media (max-width: 480px) {
+    .tabs {
+        flex-direction: column;
+        border-bottom: none;
+        gap: 4px;
+    }
+    .tab {
+        border: 1px solid var(--card-border);
+        border-radius: 6px;
+        margin-bottom: 0;
+        border-bottom-width: 1px;
+    }
+    .tab.active {
+        border-color: var(--accent);
+        background: var(--card-bg);
+    }
+    .tab-spacer { height: 8px; }
+}
+
+.tab-spacer { height: 16px; }
+.tab.tab-search { display: none; }
+.tab.tab-search.visible { display: block; }
+
+/* ── Empty state ── */
+#empty-msg {
+    text-align: center;
+    color: var(--muted);
+    padding: 48px 16px;
+    display: none;
+}
+
+/* ── Book cards ── */
+.book-list { list-style: none; }
+.book-card {
+    padding: 12px;
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    background: var(--card-bg);
+    margin-bottom: 12px;
+    position: relative;
+    overflow: hidden;
+}
+.book-cover {
+    float: left;
+    width: 120px;
+    height: 200px;
+    object-fit: cover;
+    border-radius: 4px;
+    margin-right: 12px;
+    margin-bottom: 8px;
+}
+.book-cover-placeholder {
+    float: left;
+    width: 120px;
+    height: 200px;
+    border-radius: 4px;
+    color: var(--muted);
+    margin-right: 12px;
+    margin-bottom: 8px;
+    overflow: hidden;
+}
+.book-info {
+    min-width: 0;
+}
+.book-title {
+    font-weight: 600;
+    margin-right: 8px;
+}
+.book-authors {
+    color: var(--muted);
+}
+.book-sequences {
+    color: var(--muted);
+    font-style: italic;
+}
+.book-link {
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-style: dotted;
+    text-underline-offset: 2px;
+}
+.book-link:hover {
+    color: var(--accent);
+}
+.book-annotation {
+    color: var(--muted);
+    line-height: 1.4;
+    margin-top: 8px;
+}
+.book-annotation p { margin: 0.2em 0; text-indent: 0; }
+.book-annotation p:first-child { margin-top: 0; }
+.book-annotation img { display: none; }
+.book-annotation .empty-line { display: block; height: 0.5em; }
+.book-footer {
+    clear: both;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+}
+.book-progress {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 8px;
+    border-radius: 999px;
+    border: 1px solid var(--card-border);
+    background: var(--card-bg);
+    color: var(--muted);
+    white-space: nowrap;
+}
+.btn-read {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--accent);
+    background: transparent;
+    color: var(--accent);
+    font-weight: 500;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+}
+.btn-read:hover {
+    border-color: var(--text);
+    color: var(--text);
+}
+.cache-pill {
+    display: inline-flex;
+    align-items: center;
+    line-height: 1;
+    color: var(--muted);
+    padding: 2px 6px;
+    margin-right: 2px;
+    white-space: nowrap;
+}
+.book-actions {
+    position: absolute;
+    top: 8px;
+    right: 2px;
+}
+.action-menu {
+    position: relative;
+}
+.action-menu-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 22px;
+    line-height: 1;
+}
+.action-menu-btn:hover {
+    color: var(--text);
+    background: var(--card-bg);
+}
+.action-menu-list {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    min-width: 190px;
+    padding: 4px;
+    list-style: none;
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    background: var(--bg);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    z-index: 20;
+    display: none;
+}
+.action-menu.open .action-menu-list { display: block; }
+.action-menu-item {
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    border-radius: 6px;
+    color: var(--text);
+    cursor: pointer;
+    padding: 7px 9px;
+}
+.action-menu-item:hover:not(:disabled) {
+    background: var(--card-bg);
+}
+.action-menu-item:disabled {
+    color: var(--muted);
+    cursor: default;
+}
+.action-menu-item-danger { color: var(--danger); }
+.book-annotation-missing {
+    color: var(--muted);
+    font-style: italic;
+    font-size: 0.85rem;
+    margin-top: 4px;
+}
+</style>
+<script>
+/* Apply saved theme before first paint */
+(function () {
+    var s = JSON.parse(localStorage.getItem("fb2ReaderSettings") || "{}");
+    var t = s.theme || "auto";
+    if (t === "auto") {
+        t = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    }
+    document.documentElement.classList.add("theme-" + t);
+})();
+</script>
+</head>
+<body>
+
+<div class="shelf-header">
+    <h1>Книжная полка</h1>
+    <div class="header-right">
+        <div class="theme-swatches" id="theme-swatches">
+            <button class="theme-swatch" data-theme="auto" title="Системная"><span class="swatch swatch-auto"></span><span class="swatch-label">Авто</span></button>
+            <button class="theme-swatch" data-theme="light" title="Светлая"><span class="swatch" style="background:#fff"></span><span class="swatch-label">Светлая</span></button>
+            <button class="theme-swatch" data-theme="parchment" title="Сепия"><span class="swatch" style="background:#f5e6c8"></span><span class="swatch-label">Сепия</span></button>
+            <button class="theme-swatch" data-theme="gray" title="Серая"><span class="swatch" style="background:#e0e0e0"></span><span class="swatch-label">Серая</span></button>
+            <button class="theme-swatch" data-theme="dark" title="Тёмная"><span class="swatch" style="background:#1a1a1a"></span><span class="swatch-label">Тёмная</span></button>
+        </div>
+    </div>
+</div>
+<div id="storage-info"></div>
+
+<div class="search-row">
+    <input type="text" id="filter" placeholder="Поиск по названию, автору, серии…" autocomplete="off">
+    <button id="filter-clear" type="button" title="Очистить поиск">✕</button>
+</div>
+
+<div class="tabs" id="tabs">
+    <button class="tab" data-tab="library">Моя библиотека (0)</button>
+    <button class="tab active" data-tab="cached">На устройстве (0)</button>
+    <button class="tab tab-search" data-tab="search" id="search-tab">Найдено (0)</button>
+</div>
+<div class="tab-spacer"></div>
+
+<div id="empty-msg">Нет книг в этой категории.</div>
+<ul class="book-list" id="book-list"></ul>
+
+<script src="/static/book-db.js"></script>
+<script>
+(async () => {
+    const listEl = document.getElementById("book-list");
+    const filterEl = document.getElementById("filter");
+    const filterClear = document.getElementById("filter-clear");
+    const emptyEl = document.getElementById("empty-msg");
+    const tabsEl = document.getElementById("tabs");
+    const searchTab = document.getElementById("search-tab");
+    const storageInfo = document.getElementById("storage-info");
+    const swatchesEl = document.getElementById("theme-swatches");
+
+    let allBooks = [];
+    let cachedSet = new Set();
+    let activeTab = "cached";
+    let openActionMenu = null;
+
+    // ── Search index ──
+
+    /** @type {Map<string, {title: string, authors: string[], sequences: string[], authorKey: string, seqMap: Map<string, number>, seqKey: string}>} */
+    let searchIndex = new Map();
+
+    function buildSearchIndex(books) {
+        searchIndex = new Map();
+        for (const book of books) {
+            const title = (book.title || "").toLowerCase();
+            const authors = (book.authors || [])
+                .map((a) => formatAuthor(a).toLowerCase())
+                .filter(Boolean);
+            const sequences = flattenSequenceNames(book.sequences || []).map((s) => s.toLowerCase());
+            const authorKey = (book.authors || []).map(formatAuthor).sort().join("\0");
+            const seqMap = flattenSequenceEntries(book.sequences || []);
+            const seqKey = [...seqMap.keys()].sort().join("\0");
+            searchIndex.set(book.book_id, { title, authors, sequences, authorKey, seqMap, seqKey });
+        }
+    }
+
+    function flattenSequenceNames(sequences) {
+        const names = [];
+        for (const seq of sequences) {
+            if (seq.name) names.push(seq.name);
+            if (seq.child) names.push(...flattenSequenceNames([seq.child]));
+        }
+        return names;
+    }
+
+    /** Levenshtein distance. */
+    function levenshtein(a, b) {
+        const m = a.length, n = b.length;
+        if (m === 0) return n;
+        if (n === 0) return m;
+        let prev = Array.from({ length: n + 1 }, (_, j) => j);
+        let curr = new Array(n + 1);
+        for (let i = 1; i <= m; i++) {
+            curr[0] = i;
+            for (let j = 1; j <= n; j++) {
+                curr[j] = a[i - 1] === b[j - 1]
+                    ? prev[j - 1]
+                    : 1 + Math.min(prev[j], curr[j - 1], prev[j - 1]);
+            }
+            [prev, curr] = [curr, prev];
+        }
+        return prev[n];
+    }
+
+    /**
+     * Fuzzy score for a field: split query and field into words,
+     * for each query word find best-matching field word via Levenshtein,
+     * return average similarity (0..1).
+     */
+    function fuzzyFieldScore(queryWords, text) {
+        const fieldWords = text.split(/\s+/).filter(Boolean);
+        if (fieldWords.length === 0 || queryWords.length === 0) return 0;
+        let total = 0;
+        for (const qw of queryWords) {
+            let bestSim = 0;
+            for (const fw of fieldWords) {
+                const dist = levenshtein(qw, fw);
+                const maxLen = Math.max(qw.length, fw.length);
+                const sim = maxLen > 0 ? 1 - dist / maxLen : 0;
+                if (sim > bestSim) bestSim = sim;
+            }
+            total += bestSim;
+        }
+        return total / queryWords.length;
+    }
+
+    /** Flattens nested sequence chains into a Map<name, number>. */
+    function flattenSequenceEntries(sequences) {
+        const map = new Map();
+        for (const seq of sequences) {
+            let current = seq;
+            while (current) {
+                if (current.name) map.set(current.name, current.number);
+                current = current.child;
+            }
+        }
+        return map;
+    }
+
+    /**
+     * Search books by query. Returns books sorted by relevance.
+     * exactMatch=true (click on author/sequence): substring-only, sorted by author → sequence number → title.
+     * exactMatch=false (manual input): substring + Levenshtein fuzzy, sorted by score.
+     */
+    function searchBooks(query, bookList, exactMatch) {
+        const q = query.toLowerCase().trim();
+        if (!q) return [];
+
+        if (exactMatch) {
+            const results = [];
+            for (const book of bookList) {
+                const idx = searchIndex.get(book.book_id);
+                if (!idx) continue;
+                if (idx.title.includes(q) || idx.authors.some((a) => a.includes(q)) || idx.sequences.some((s) => s.includes(q))) {
+                    results.push({ book, idx });
+                }
+            }
+            results.sort((a, b) => {
+                const authorCmp = a.idx.authorKey.localeCompare(b.idx.authorKey);
+                if (authorCmp) return authorCmp;
+
+                const seqCmp = a.idx.seqKey.localeCompare(b.idx.seqKey);
+                if (seqCmp) return seqCmp;
+
+                for (const [name, numA] of a.idx.seqMap) {
+                    if (!b.idx.seqMap.has(name)) continue;
+                    const na = numA ?? Infinity;
+                    const nb = b.idx.seqMap.get(name) ?? Infinity;
+                    if (na !== nb) return na - nb;
+                }
+
+                return (a.book.title || "").localeCompare(b.book.title || "");
+            });
+            return results.map((r) => r.book);
+        }
+
+        // Fuzzy path: substring match (high score) + Levenshtein fallback
+        const qWords = q.split(/\s+/).filter(Boolean);
+        const results = [];
+
+        for (const book of bookList) {
+            const idx = searchIndex.get(book.book_id);
+            if (!idx) continue;
+
+            // Exact substring match — high score
+            let score = 0;
+            if (idx.title.includes(q)) {
+                score = 1.0;
+            } else if (idx.authors.some((a) => a.includes(q))) {
+                score = 0.95;
+            } else if (idx.sequences.some((s) => s.includes(q))) {
+                score = 0.9;
+            } else {
+                // Fuzzy: Levenshtein per-word matching
+                const titleSim = fuzzyFieldScore(qWords, idx.title);
+                const authorSim = idx.authors.reduce((best, a) => Math.max(best, fuzzyFieldScore(qWords, a)), 0);
+                const seqSim = idx.sequences.reduce((best, s) => Math.max(best, fuzzyFieldScore(qWords, s)), 0);
+                score = Math.max(titleSim, authorSim, seqSim);
+            }
+
+            if (score > 0.5) {
+                results.push({ book, score });
+            }
+        }
+
+        results.sort((a, b) => b.score - a.score);
+        return results.map((r) => r.book);
+    }
+
+    // ── Theme swatches ──
+    const storedSettings = JSON.parse(localStorage.getItem("fb2ReaderSettings") || "{}");
+    let savedTheme = storedSettings.theme || "auto";
+    updateSwatchSelected(savedTheme);
+
+    function resolveTheme(value) {
+        if (value === "auto") {
+            return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        }
+        return value;
+    }
+
+    function applyTheme(value) {
+        const themes = ["light", "parchment", "gray", "dark"];
+        themes.forEach((t) => document.documentElement.classList.remove(`theme-${t}`));
+        document.documentElement.classList.add(`theme-${resolveTheme(value)}`);
+    }
+
+    swatchesEl.addEventListener("click", (e) => {
+        const btn = e.target.closest(".theme-swatch");
+        if (!btn) {
+            return;
+        }
+        savedTheme = btn.dataset.theme;
+        applyTheme(savedTheme);
+        const s = JSON.parse(localStorage.getItem("fb2ReaderSettings") || "{}");
+        s.theme = savedTheme;
+        localStorage.setItem("fb2ReaderSettings", JSON.stringify(s));
+        updateSwatchSelected(savedTheme);
+    });
+
+    window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+        if (savedTheme === "auto") {
+            applyTheme("auto");
+        }
+    });
+
+    function updateSwatchSelected(value) {
+        swatchesEl.querySelectorAll(".theme-swatch").forEach((s) => {
+            s.classList.toggle("selected", s.dataset.theme === value);
+        });
+    }
+
+    // ── Load books ──
+    try {
+        allBooks = await fb2Reader.getAllBooks();
+        allBooks.sort((a, b) => b.updated_at - a.updated_at);
+        buildSearchIndex(allBooks);
+    } catch (e) {
+        console.error("Failed to load book index", e);
+    }
+
+    // ── Cache statuses ──
+    cachedSet = await checkCachedBooks(allBooks);
+
+    // ── Storage estimate ──
+    updateStorageEstimate();
+
+    // ── Initial render ──
+    updateTabCounts();
+    renderFiltered(false);
+
+    // ── Filter input ──
+
+    filterEl.addEventListener("input", () => {
+        const hasText = filterEl.value.trim().length > 0;
+        filterClear.style.display = hasText ? "block" : "none";
+        if (hasText) {
+            searchTab.classList.add("visible");
+            switchToTab("search");
+        } else {
+            searchTab.classList.remove("visible");
+            if (activeTab === "search") {
+                switchToTab("cached");
+            }
+        }
+        renderFiltered(false);
+    });
+
+    filterClear.addEventListener("click", () => {
+        filterEl.value = "";
+        filterClear.style.display = "none";
+        searchTab.classList.remove("visible");
+        if (activeTab === "search") {
+            switchToTab("cached");
+        }
+        renderFiltered(false);
+    });
+
+    // ── Tab switching ──
+    tabsEl.addEventListener("click", (e) => {
+        const btn = e.target.closest(".tab");
+        if (!btn) {
+            return;
+        }
+        switchToTab(btn.dataset.tab);
+        renderFiltered(false);
+    });
+
+    function switchToTab(tab) {
+        activeTab = tab;
+        tabsEl.querySelectorAll(".tab").forEach((t) => t.classList.remove("active"));
+        const target = tabsEl.querySelector(`.tab[data-tab="${tab}"]`);
+        if (target) {
+            target.classList.add("active");
+        }
+    }
+
+    // ── Helpers ──
+
+    function setSearchQuery(text) {
+        filterEl.value = text;
+        filterClear.style.display = "block";
+        searchTab.classList.add("visible");
+        switchToTab("search");
+        filterEl.scrollIntoView({ behavior: "instant", block: "center" });
+        renderFiltered(true);
+    }
+
+    function renderFiltered(exactMatch) {
+        const q = filterEl.value.trim();
+        let books;
+
+        if (activeTab === "search") {
+            books = q ? searchBooks(q, allBooks, exactMatch) : [];
+            searchTab.textContent = `Найдено (${books.length})`;
+            emptyEl.textContent = "Ничего не найдено.";
+        } else if (activeTab === "cached") {
+            books = allBooks.filter((b) => cachedSet.has(b.book_id));
+            emptyEl.textContent = "Нет книг на устройстве. Откройте книгу в браузере — она сохранится здесь.";
+        } else {
+            books = allBooks;
+            emptyEl.textContent = "Библиотека пуста. Откройте книгу в браузере — она появится здесь.";
+        }
+        renderList(books);
+    }
+
+    function updateTabCounts() {
+        const cachedCount = allBooks.filter((b) => cachedSet.has(b.book_id)).length;
+        const labels = { library: "Моя библиотека", cached: "На устройстве" };
+        tabsEl.querySelectorAll(".tab:not(.tab-search)").forEach((t) => {
+            const key = t.dataset.tab;
+            const count = key === "library" ? allBooks.length : cachedCount;
+            t.textContent = `${labels[key]} (${count})`;
+        });
+    }
+
+    async function checkCachedBooks(books) {
+        const set = new Set();
+        try {
+            const bookCache = await caches.open("fb2-books-v1");
+            await Promise.all(
+                books.map(async (b) => {
+                    const hasHtml = !!(await bookCache.match(`/book/${b.book_id}/read.html`));
+                    if (hasHtml) {
+                        set.add(b.book_id);
+                    }
+                }),
+            );
+        } catch {}
+        return set;
+    }
+
+    function el(tag, cls, content) {
+        const e = document.createElement(tag);
+        if (cls) e.className = cls;
+        if (content != null) {
+            if (typeof content === "string") e.textContent = content;
+            else if (Array.isArray(content)) {
+                for (const c of content) {
+                    if (c) e.append(c);
+                }
+            } else {
+                e.append(content);
+            }
+        }
+        return e;
+    }
+
+    function renderList(books) {
+        openActionMenu = null;
+        listEl.innerHTML = "";
+        if (!books.length) { emptyEl.style.display = "block"; return; }
+        emptyEl.style.display = "none";
+
+        for (const book of books) {
+            const isCached = cachedSet.has(book.book_id);
+            const bookUrl = `/book/${book.book_id}/read.html`;
+
+            // Cover
+            const placeholderSvg = '<svg width="120" height="200" viewBox="0 0 120 200" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="118" height="198" rx="4" fill="currentColor" opacity="0.08"/><rect x="1" y="1" width="18" height="198" rx="4" fill="currentColor" opacity="0.18"/><rect x="1" y="1" width="118" height="198" rx="4" stroke="currentColor" stroke-width="2" opacity="0.4"/><line x1="30" y1="60" x2="100" y2="60" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.3"/><line x1="30" y1="76" x2="100" y2="76" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.3"/><line x1="30" y1="92" x2="78" y2="92" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.3"/></svg>';
+            let cover;
+            if (book.cover) {
+                cover = Object.assign(el("img", "book-cover"), { src: `/book/${book.book_id}/images/${book.cover}`, alt: "" });
+                cover.addEventListener("error", () => {
+                    const ph = el("div", "book-cover-placeholder");
+                    ph.innerHTML = placeholderSvg;
+                    cover.replaceWith(ph);
+                });
+            } else {
+                cover = el("div", "book-cover-placeholder");
+                cover.innerHTML = placeholderSvg;
+            }
+
+            // Authors
+            let authorsEl = null;
+            if (book.authors?.length) {
+                authorsEl = el("div", "book-authors");
+                book.authors.map(formatAuthor).filter(Boolean).forEach((name, i) => {
+                    if (i) authorsEl.append(", ");
+                    const s = el("span", "book-link", name);
+                    s.addEventListener("click", () => setSearchQuery(name));
+                    authorsEl.append(s);
+                });
+            }
+
+            // Sequences
+            let seqEl = null;
+            if (book.sequences?.length) {
+                seqEl = el("div", "book-sequences");
+                book.sequences.forEach((seq, i) => {
+                    if (i) seqEl.append("; ");
+                    appendSequenceLinks(seqEl, seq);
+                });
+            }
+
+            // Annotation
+            let annEl;
+            if (book.annotation) {
+                annEl = el("div", "book-annotation");
+                annEl.innerHTML = book.annotation;
+            } else {
+                annEl = el("p", "book-annotation-missing", "Аннотация отсутствует");
+            }
+
+            // Footer
+            const pct = computeProgress(book);
+            const progress = book.position > 1 ? el("span", "book-progress", `Прочитано: ${pct}%`) : el("span");
+            const readBtn = Object.assign(el("a", "btn-read"), { href: bookUrl });
+            if (!isCached) readBtn.append(el("span", "cache-pill", "не в кеше"));
+            readBtn.append(" Читать");
+
+            const info = el("div", "book-info", [
+                cover,
+                el("div", "book-title", book.title),
+                authorsEl, seqEl, annEl,
+                el("div", "book-footer", [progress, readBtn]),
+            ]);
+
+            const card = el("div", "book-card", [
+                info,
+                el("div", "book-actions", buildActionMenu(book, isCached)),
+            ]);
+
+            listEl.append(el("li", null, card));
+        }
+    }
+
+    function buildActionMenu(book, isCached) {
+        const menu = el("div", "action-menu");
+        const btn = Object.assign(el("button", "action-menu-btn", "⋮"), { type: "button", title: "Действия" });
+
+        const cacheBtn = Object.assign(
+            el("button", "action-menu-item", isCached ? "Удалить из кеша" : "Не в кеше"),
+            { type: "button", disabled: !isCached },
+        );
+        cacheBtn.addEventListener("click", async (e) => {
+            e.stopPropagation();
+            await removeBookCaches(book.book_id);
+            cachedSet.delete(book.book_id);
+            updateTabCounts(); renderFiltered(false); updateStorageEstimate();
+        });
+
+        const libBtn = Object.assign(
+            el("button", "action-menu-item action-menu-item-danger", "Удалить из библиотеки"),
+            { type: "button" },
+        );
+        libBtn.addEventListener("click", async (e) => {
+            e.stopPropagation();
+            await removeBookCaches(book.book_id);
+            cachedSet.delete(book.book_id);
+            await fb2Reader.deleteBook(book.book_id);
+            allBooks = allBooks.filter((b) => b.book_id !== book.book_id);
+            searchIndex.delete(book.book_id);
+            updateTabCounts(); renderFiltered(false); updateStorageEstimate();
+        });
+
+        btn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            if (openActionMenu && openActionMenu !== menu) openActionMenu.classList.remove("open");
+            const nowOpen = menu.classList.toggle("open");
+            openActionMenu = nowOpen ? menu : null;
+        });
+
+        menu.append(btn, el("ul", "action-menu-list", [
+            el("li", null, cacheBtn),
+            el("li", null, libBtn),
+        ]));
+        return menu;
+    }
+
+    document.addEventListener("click", () => {
+        if (openActionMenu) {
+            openActionMenu.classList.remove("open");
+            openActionMenu = null;
+        }
+    });
+
+    async function removeBookCaches(bookId) {
+        try {
+            const bookCache = await caches.open("fb2-books-v1");
+            await bookCache.delete(`/book/${bookId}/read.html`);
+        } catch {}
+        try {
+            const imgCache = await caches.open("fb2-images-v1");
+            const keys = await imgCache.keys();
+            const prefix = `/book/${bookId}/images/`;
+            await Promise.all(
+                keys
+                    .filter((r) => new URL(r.url).pathname.startsWith(prefix))
+                    .map((r) => imgCache.delete(r)),
+            );
+        } catch {}
+        localStorage.removeItem(`fb2-pos-${bookId}`);
+    }
+
+    function computeProgress(book) {
+        const pos = book.position;
+        const count = book.paragraph_count;
+        if (!pos || !count) {
+            return 0;
+        }
+        return Math.min(100, Math.round((pos / count) * 100));
+    }
+
+    function formatAuthor(a) {
+        return [a.name, a.nickname, a.surname].filter(Boolean).join(" ");
+    }
+
+    function appendSequenceLinks(container, seq) {
+        const s = el("span", "book-link", seq.number != null ? `${seq.name}: ${seq.number}` : seq.name);
+        s.addEventListener("click", () => setSearchQuery(seq.name));
+        container.append(s);
+        if (seq.child) {
+            container.append(" — ");
+            appendSequenceLinks(container, seq.child);
+        }
+    }
+
+    function formatBytes(bytes) {
+        if (bytes < 1024) {
+            return `${bytes} Б`;
+        }
+        if (bytes < 1024 * 1024) {
+            return `${(bytes / 1024).toFixed(0)} КБ`;
+        }
+        if (bytes < 1024 * 1024 * 1024) {
+            return `${(bytes / (1024 * 1024)).toFixed(1)} МБ`;
+        }
+        return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} ГБ`;
+    }
+
+    async function updateStorageEstimate() {
+        if (!navigator.storage || !navigator.storage.estimate) {
+            return;
+        }
+        try {
+            const est = await navigator.storage.estimate();
+            storageInfo.textContent = `Занято ${formatBytes(est.usage)} из ${formatBytes(est.quota)}`;
+        } catch {}
+    }
+})();
+</script>
+</body>
+</html>

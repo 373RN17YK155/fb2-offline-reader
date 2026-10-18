@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Книжная полка — оффлайн FB2</title>
+<meta name="description" content="Оффлайн-читалка FB2-книг: импортируйте файлы FB2 и читайте на своём устройстве без интернета.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cactus+Classical+Serif&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Roboto+Mono:ital,wght@0,100..700;1,100..700&family=Spectral:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap" rel="stylesheet">
+<style>
+/* ── Themes ── */
+:root {
+    --bg: #fff;
+    --text: #111;
+    --card-bg: #f7f7f7;
+    --card-border: #ddd;
+    --accent: #0066cc;
+    --muted: #888;
+    --danger: #c33;
+}
+html.theme-parchment {
+    --bg: #f9f3e5; --text: #4a3b2c;
+    --card-bg: #f2e7d1; --card-border: #d6c7a6;
+    --accent: #8b4513; --muted: #9a8b70;
+}
+html.theme-gray {
+    --bg: #f0f0f0; --text: #2e2e2e;
+    --card-bg: #e9e9e9; --card-border: #ccc;
+    --accent: #0055aa; --muted: #777;
+}
+html.theme-dark {
+    --bg: #141414; --text: #e0e0e0;
+    --card-bg: #2a2a2a; --card-border: #3a3a3a;
+    --accent: #6db3f2; --muted: #999;
+    --danger: #f55;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { overflow-y: scroll; }
+body {
+    font-family: system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 16px;
+    max-width: 960px;
+    margin: 0 auto;
+}
+
+/* ── Header row ── */
+.shelf-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+    gap: 4px 16px;
+}
+.shelf-header h1 {
+    font-size: 1.4rem;
+}
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+#storage-info {
+    font-size: 0.8rem;
+    color: var(--muted);
+    text-align: right;
+    min-height: 1.2em;
+    line-height: 1.2;
+    margin-bottom: 4px;
+}
+/* ── Theme swatches (mirrors reader.css) ── */
+.theme-swatches {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+.theme-swatch {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    background: transparent;
+    border: none;
+    padding: 2px;
+    cursor: pointer;
+}
+.theme-swatch .swatch {
+    display: block;
+    width: 28px;
+    height: 16px;
+    border-radius: 4px;
+    border: none;
+    box-shadow: 0 0.5px 2px rgba(0, 0, 0, 0.15);
+}
+.theme-swatch .swatch-label {
+    font-size: 0.6rem;
+    opacity: 0.5;
+    color: var(--text);
+    border-bottom: 2px solid transparent;
+    padding-bottom: 1px;
+    line-height: 1;
+}
+.theme-swatch.selected .swatch-label {
+    opacity: 1;
+    border-bottom-color: var(--text);
+}
+.theme-swatch .swatch-auto {
+    background: transparent;
+    overflow: visible;
+    box-shadow: none;
+    clip-path: inset(0 round 4px);
+    filter: drop-shadow(0 0.5px 2px rgba(0, 0, 0, 0.15));
+    position: relative;
+}
+.theme-swatch .swatch-auto::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: #fff;
+    clip-path: polygon(0 0, 100% 0, 0% 100%);
+}
+.theme-swatch .swatch-auto::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: #1a1a1a;
+    clip-path: polygon(100% 0, 100% 100%, 0% 100%);
+}
+
+/* ── Add button ── */
+.btn-add {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--accent);
+    background: var(--accent);
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.btn-add:hover { filter: brightness(1.08); }
+
+/* ── Search row ── */
+.search-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+#filter {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+    background: var(--card-bg);
+    color: var(--text);
+}
+#filter::placeholder { color: var(--muted); }
+#filter-clear {
+    padding: 0 12px;
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+    background: var(--card-bg);
+    color: var(--muted);
+    cursor: pointer;
+    line-height: 1;
+    display: none;
+}
+#filter-clear:hover { color: var(--text); }
+
+/* ── Import status ── */
+#import-status {
+    display: none;
+    margin-bottom: 12px;
+    padding: 8px 12px;
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    background: var(--card-bg);
+    color: var(--text);
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+#import-status.visible { display: block; }
+#import-status .ok { color: #0a7d32; }
+html.theme-dark #import-status .ok { color: #63c98a; }
+#import-status .err { color: var(--danger); }
+#import-status .warn { color: #a07d00; }
+html.theme-dark #import-status .warn { color: #e0b64a; }
+
+/* ── Empty state ── */
+#empty-msg {
+    text-align: center;
+    color: var(--muted);
+    padding: 48px 16px;
+    display: none;
+}
+
+/* ── Book cards ── */
+.book-list { list-style: none; }
+.book-card {
+    padding: 12px;
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    background: var(--card-bg);
+    margin-bottom: 12px;
+    position: relative;
+    overflow: hidden;
+}
+.book-cover {
+    float: left;
+    width: 120px;
+    height: 200px;
+    object-fit: cover;
+    border-radius: 4px;
+    margin-right: 12px;
+    margin-bottom: 8px;
+}
+.book-cover-placeholder {
+    float: left;
+    width: 120px;
+    height: 200px;
+    border-radius: 4px;
+    color: var(--muted);
+    margin-right: 12px;
+    margin-bottom: 8px;
+    overflow: hidden;
+}
+.book-info { min-width: 0; }
+.book-title { font-weight: 600; margin-right: 8px; }
+.book-authors { color: var(--muted); }
+.book-sequences { color: var(--muted); font-style: italic; }
+.book-link {
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-style: dotted;
+    text-underline-offset: 2px;
+}
+.book-link:hover { color: var(--accent); }
+.book-annotation {
+    color: var(--muted);
+    line-height: 1.4;
+    margin-top: 8px;
+}
+.book-annotation p { margin: 0.2em 0; text-indent: 0; }
+.book-annotation p:first-child { margin-top: 0; }
+.book-annotation img { display: none; }
+.book-annotation .empty-line { display: block; height: 0.5em; }
+.book-footer {
+    clear: both;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+}
+.book-progress {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 8px;
+    border-radius: 999px;
+    border: 1px solid var(--card-border);
+    background: var(--card-bg);
+    color: var(--muted);
+    white-space: nowrap;
+}
+.btn-read {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--accent);
+    background: transparent;
+    color: var(--accent);
+    font-weight: 500;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+}
+.btn-read:hover { border-color: var(--text); color: var(--text); }
+.book-actions {
+    position: absolute;
+    top: 8px;
+    right: 2px;
+}
+.action-menu { position: relative; }
+.action-menu-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 22px;
+    line-height: 1;
+}
+.action-menu-btn:hover { color: var(--text); background: var(--card-bg); }
+.action-menu-list {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    min-width: 190px;
+    padding: 4px;
+    list-style: none;
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    background: var(--bg);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    z-index: 20;
+    display: none;
+}
+.action-menu.open .action-menu-list { display: block; }
+.action-menu-item {
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    border-radius: 6px;
+    color: var(--text);
+    cursor: pointer;
+    padding: 7px 9px;
+}
+.action-menu-item:hover:not(:disabled) { background: var(--card-bg); }
+.action-menu-item:disabled { color: var(--muted); cursor: default; }
+.action-menu-item-danger { color: var(--danger); }
+.book-annotation-missing {
+    color: var(--muted);
+    font-style: italic;
+    font-size: 0.85rem;
+    margin-top: 4px;
+}
+
+/* ── Drag & drop overlay ── */
+#drop-overlay {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    border: 4px dashed var(--accent);
+    z-index: 1000;
+    font-size: 1.3rem;
+    color: var(--accent);
+    pointer-events: none;
+}
+#drop-overlay.visible { display: flex; }
+</style>
+<script>
+/* Apply saved theme before first paint */
+(function () {
+    var s = JSON.parse(localStorage.getItem("fb2ReaderSettings") || "{}");
+    var t = s.theme || "auto";
+    if (t === "auto") {
+        t = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    }
+    document.documentElement.classList.add("theme-" + t);
+})();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+}
+</script>
+</head>
+<body>
+
+<div class="shelf-header">
+    <h1>Книжная полка</h1>
+    <div class="header-right">
+        <button class="btn-add" id="add-books" type="button">+ Добавить FB2</button>
+        <div class="theme-swatches" id="theme-swatches">
+            <button class="theme-swatch" data-theme="auto" title="Системная"><span class="swatch swatch-auto"></span><span class="swatch-label">Авто</span></button>
+            <button class="theme-swatch" data-theme="light" title="Светлая"><span class="swatch" style="background:#fff"></span><span class="swatch-label">Светлая</span></button>
+            <button class="theme-swatch" data-theme="parchment" title="Сепия"><span class="swatch" style="background:#f5e6c8"></span><span class="swatch-label">Сепия</span></button>
+            <button class="theme-swatch" data-theme="gray" title="Серая"><span class="swatch" style="background:#e0e0e0"></span><span class="swatch-label">Серая</span></button>
+            <button class="theme-swatch" data-theme="dark" title="Тёмная"><span class="swatch" style="background:#1a1a1a"></span><span class="swatch-label">Тёмная</span></button>
+        </div>
+    </div>
+</div>
+<div id="storage-info"></div>
+
+<div class="search-row">
+    <input type="text" id="filter" placeholder="Поиск по названию, автору, серии…" autocomplete="off">
+    <button id="filter-clear" type="button" title="Очистить поиск">✕</button>
+</div>
+
+<div id="import-status" role="status" aria-live="polite"></div>
+
+<div id="empty-msg">Библиотека пуста. Нажмите «Добавить FB2» или перетащите файлы .fb2 сюда.</div>
+<ul class="book-list" id="book-list"></ul>
+
+<input type="file" id="file-input" accept=".fb2,.xml,application/x-fictionbook+xml,text/xml" multiple hidden>
+<div id="drop-overlay">Перетащите FB2-файлы сюда</div>
+
+<script src="book-db.js"></script>
+<script src="fb2.js"></script>
+<script src="shelf.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+{
+  "name": "FB2 — оффлайн читалка",
+  "short_name": "FB2 Reader",
+  "description": "Импортируйте FB2-книги и читайте на любом устройстве без интернета.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "categories": ["books", "utilities"],
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

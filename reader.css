@@ -1,0 +1,1519 @@
+/*
+ * Stylesheet for the FB2 reader.
+ *
+ * Structure:
+ *   1. Reset & base
+ *   2. CSS variables & themes
+ *   3. Book container & content layout
+ *   4. Typography settings (fonts, line-height, alignment)
+ *   5. Book content elements (paragraphs, headings, images, etc.)
+ *   6. Notes
+ *   7. Header, settings panel, TOC panel, overlay
+ *   8. Modal
+ *   9. Theme button colours
+ *  10. Chrome visibility
+ *  11. Chapter mode (one chapter at a time)
+ *  12. Page mode (pagination, columns, baseline grid, nav, footer)
+ *  13. Desktop / mobile overrides
+ */
+
+/* ===================================================================
+   1. Reset & base
+   =================================================================== */
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    font-size: 100%;
+}
+
+body {
+    background-color: var(--bg-color);
+}
+
+/* ===================================================================
+   2. CSS variables & themes
+   =================================================================== */
+
+:root {
+    --bg-color: #ffffff;
+    --text-color: #000000;
+    --panel-bg-color: #f5f5f5;
+    --panel-border-color: #cccccc;
+    --header-button-bg: rgba(0, 0, 0, 0.05);
+    --header-button-hover-bg: rgba(0, 0, 0, 0.1);
+    --button-bg: #ffffff;
+    --button-border: #cccccc;
+    --link-color: #0066cc;
+    --note-bg: #f5f5f5;
+    --header-button-color: #000000;
+    --button-color: #000000;
+}
+
+html.theme-light {
+    --bg-color: #ffffff;
+    --text-color: #111111;
+    --panel-bg-color: #f7f7f7;
+    --panel-border-color: #dddddd;
+    --button-bg: #ffffff;
+    --button-border: #cccccc;
+    --link-color: #0066cc;
+    --note-bg: #f5f5f5;
+    --header-button-color: #111111;
+    --button-color: #111111;
+}
+
+html.theme-parchment {
+    --bg-color: #f9f3e5;
+    --text-color: #4a3b2c;
+    --panel-bg-color: #f2e7d1;
+    --panel-border-color: #d6c7a6;
+    --button-bg: #fff9e8;
+    --button-border: #d6c7a6;
+    --link-color: #8b4513;
+    --note-bg: #f2e7d1;
+    --header-button-color: #4a3b2c;
+    --button-color: #4a3b2c;
+}
+
+html.theme-gray {
+    --bg-color: #f0f0f0;
+    --text-color: #2e2e2e;
+    --panel-bg-color: #e9e9e9;
+    --panel-border-color: #cccccc;
+    --button-bg: #f7f7f7;
+    --button-border: #cfcfcf;
+    --link-color: #0055aa;
+    --note-bg: #e0e0e0;
+    --header-button-color: #2e2e2e;
+    --button-color: #2e2e2e;
+}
+
+html.theme-dark {
+    --bg-color: #141414;
+    --text-color: #e0e0e0;
+    --panel-bg-color: #2a2a2a;
+    --panel-border-color: #3a3a3a;
+    --header-button-bg: #444444;
+    --header-button-color: #d6d6d6;
+    --header-button-hover-bg: #666666;
+    --button-bg: #4a4a4a;
+    --button-border: #555555;
+    --button-color: #d2d2d2;
+    --link-color: #6db3f2;
+    --note-bg: #2a2a2a;
+    --seg-bg: rgba(255, 255, 255, 0.05);
+}
+
+/* ===================================================================
+   3. Book container & content layout
+   =================================================================== */
+
+#book-container {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    min-height: 100vh;
+    padding-left: 16px;
+    padding-right: 16px;
+    box-sizing: border-box;
+    font-size: var(--font-size, 20px);
+}
+
+#book-container,
+#progress-footer,
+#header-icons {
+    transition: opacity 0.15s ease;
+}
+
+.layout-pending #book-container,
+.layout-pending #progress-footer,
+.layout-pending #header-icons {
+    opacity: 0;
+    transition: none;
+}
+
+/* ===================================================================
+   4. Typography settings (fonts, line-height, alignment)
+   =================================================================== */
+
+.font-cactus {
+    font-family: "Cactus Classical Serif", serif;
+}
+.font-spectral {
+    font-family: "Spectral", serif;
+}
+.font-inter {
+    font-family: "Inter", sans-serif;
+}
+.font-roboto-mono {
+    font-family: "Roboto Mono", monospace;
+}
+
+.line-height-compact #book-content {
+    --lh-ratio: 1.3;
+    --lh: calc(var(--lh-ratio) * 1em);
+    line-height: var(--lh-ratio);
+}
+.line-height-normal #book-content {
+    --lh-ratio: 1.5;
+    --lh: calc(var(--lh-ratio) * 1em);
+    line-height: var(--lh-ratio);
+}
+.line-height-loose #book-content {
+    --lh-ratio: 1.7;
+    --lh: calc(var(--lh-ratio) * 1em);
+    line-height: var(--lh-ratio);
+}
+
+.align-left #book-content {
+    text-align: left;
+}
+.align-justify #book-content {
+    text-align: justify;
+}
+
+.hyphenation-no #book-content {
+    -webkit-hyphens: none;
+    -ms-hyphens: none;
+    hyphens: none;
+}
+
+.hyphenation-yes #book-content {
+    -webkit-hyphens: auto;
+    -ms-hyphens: auto;
+    hyphens: auto;
+}
+
+/* ===================================================================
+   5. Book content elements
+   =================================================================== */
+
+#book-content:focus {
+    outline: none;
+}
+
+/* --- Paragraphs --- */
+#book-content p {
+    margin: 0.4em 0;
+    text-indent: 1.5em;
+}
+
+/* --- Links --- */
+#book-content a {
+    color: var(--link-color);
+    text-decoration: none;
+}
+#book-content a:hover {
+    text-decoration: underline;
+}
+#book-content a:visited {
+    color: var(--link-color);
+}
+
+/* Flash source note reference when jumping back from notes. */
+#book-content a.note__ref.note__ref--flash {
+    position: relative;
+    isolation: isolate;
+}
+#book-content a.note__ref.note__ref--flash::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 2.8em;
+    height: 2.8em;
+    border-radius: 50%;
+    background: #ff6fae;
+    pointer-events: none;
+    animation: note-ref-flash 2s ease-out forwards;
+}
+
+@keyframes note-ref-flash {
+    0% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+    50% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+
+/* --- Headings --- */
+#book-content h1,
+#book-content h2,
+#book-content h3,
+#book-content h4,
+#book-content h5,
+#book-content h6 {
+    overflow-wrap: break-word;
+    break-inside: avoid;
+    page-break-inside: avoid;
+    hyphens: none;
+    font-weight: normal;
+    margin: 0.8em 0;
+    text-align: center;
+}
+
+#book-content h2 {
+    font-size: 1.6em;
+}
+#book-content h3 {
+    font-size: 1.2em;
+}
+
+#book-content h3,
+#book-content h4,
+#book-content h5,
+#book-content h6 {
+    margin: 0.6em 0;
+}
+
+/* FB2 renderer can nest block tags inside headings; normalize inner flow */
+#book-content h1 *,
+#book-content h2 *,
+#book-content h3 *,
+#book-content h4 *,
+#book-content h5 *,
+#book-content h6 * {
+    margin: 0;
+    padding: 0;
+    text-indent: 0;
+    line-height: inherit;
+}
+
+/* --- Inline styles --- */
+#book-content em {
+    font-style: italic;
+}
+#book-content strong {
+    font-weight: bold;
+}
+#book-content cite {
+    display: block;
+    font-style: italic;
+    opacity: 0.9;
+    padding-right: 0.2em;
+}
+#book-content s {
+    text-decoration: line-through;
+}
+#book-content sub,
+#book-content sup {
+    font-size: 0.6em;
+}
+
+/* --- Empty-line spacer --- */
+#book-content .empty-line {
+    display: block;
+    width: 100%;
+    height: var(--lh);
+    break-inside: avoid;
+    page-break-inside: avoid;
+    -webkit-column-break-inside: avoid;
+}
+
+/* --- Images --- */
+#book-content .img-wrap {
+    display: block;
+    width: 100%;
+    break-inside: avoid;
+    page-break-inside: avoid;
+    -webkit-column-break-inside: avoid;
+    overflow: hidden;
+    margin: var(--lh) 0;
+}
+#book-content img {
+    display: block;
+    max-width: 100%;
+    max-height: 100vh;
+    object-fit: contain;
+    margin: 0 auto;
+    box-sizing: border-box;
+}
+
+/* --- Preamble: annotation --- */
+#book-content #annotation {
+    opacity: 0.75;
+    margin: var(--lh) 0;
+    font-style: italic;
+    padding-right: 0.2em;
+}
+
+/* --- Epigraphs, poems, stanzas --- */
+#book-content div.epigraph {
+    margin: var(--lh) 0;
+    padding-left: 2em;
+    font-style: italic;
+    opacity: 0.8;
+    padding-right: 0.2em;
+}
+#book-content div.poem {
+    margin: var(--lh) 0;
+    font-style: italic;
+    padding-right: 0.2em;
+}
+#book-content div.stanza {
+    margin-left: 2em;
+    margin-bottom: var(--lh);
+}
+#book-content div.stanza p.verse {
+    padding-left: 1em;
+}
+#book-content p.text-author {
+    text-align: right;
+    font-style: italic;
+    margin-top: 0;
+    text-indent: 0;
+    padding-right: 0.2em;
+}
+
+/* ===================================================================
+   6. Notes
+   =================================================================== */
+
+#book-content section.notes {
+    margin-top: 2em;
+}
+#book-content section.notes .note {
+    margin: 1em 0;
+    padding: 0.2em 1em;
+    background-color: var(--note-bg);
+    border: 1px solid var(--panel-border-color);
+    border-radius: 4px;
+    break-inside: avoid;
+    page-break-inside: avoid;
+    -webkit-column-break-inside: avoid;
+}
+#book-content section.notes .note__backrefs {
+    display: inline;
+    margin-right: 0.3em;
+    margin-left: -0.3em;
+}
+#book-content section.notes .note__backref {
+    display: inline;
+    color: var(--button-color);
+    text-decoration: none;
+}
+#book-content section.notes .note__backref svg {
+    width: 1.1em;
+    height: 1.1em;
+    vertical-align: -0.15em;
+    fill: currentColor;
+}
+#book-content section.notes .note__backref:hover {
+    opacity: 0.7;
+}
+#book-content section.notes .note__title {
+    display: inline;
+    font-weight: bold;
+    margin-right: 1em;
+}
+#book-content section.notes .note__body {
+    display: contents;
+}
+#book-content section.notes .note__body p:first-child {
+    display: inline;
+}
+
+/* ===================================================================
+   7. Header, settings panel, TOC panel, overlay
+   =================================================================== */
+
+/* --- Header --- */
+#reader-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3rem;
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    z-index: 1000;
+    pointer-events: none;
+}
+
+#header-icons {
+    margin-left: auto;
+    display: flex;
+    gap: 0.5rem;
+    background-color: var(--bg-color);
+    padding: 4px 8px;
+    border-radius: 26px;
+}
+
+#reader-header button {
+    pointer-events: all;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background-color: var(--header-button-bg);
+    color: var(--header-button-color);
+    border: 1px solid var(--button-border);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: none;
+    line-height: 1;
+    -webkit-tap-highlight-color: transparent;
+}
+#reader-header button[hidden] {
+    display: none;
+}
+#reader-header button:focus {
+    outline: none;
+}
+@media (hover: hover) and (pointer: fine) {
+    #reader-header button:hover {
+        background-color: var(--header-button-hover-bg);
+    }
+}
+
+/* --- Settings panel --- */
+#settings-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 320px;
+    height: 100%;
+    background-color: var(--panel-bg-color);
+    color: var(--text-color);
+    border-left: 1px solid var(--panel-border-color);
+    transform: translateX(100%);
+    transition: none;
+    z-index: 1001;
+    display: flex;
+    flex-direction: column;
+}
+#settings-panel.open {
+    transform: translateX(0);
+}
+
+#settings-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid var(--panel-border-color);
+}
+#settings-header h2 {
+    margin: 0;
+    font-size: 1.2rem;
+}
+#settings-header button {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--text-color);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+#settings-body {
+    padding: 0 1rem 1rem;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    flex: 1;
+}
+
+.option-group {
+    margin-top: 1rem;
+}
+.option-title {
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-color);
+    opacity: 0.7;
+}
+.option-buttons {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 0.5rem;
+}
+.option-buttons .option-button {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+/* --- Inline layout: title and buttons on one row --- */
+.option-group-inline {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+.option-group-inline .option-title {
+    margin-bottom: 0;
+    flex: 0 0 5.5em;
+    white-space: nowrap;
+}
+.option-group-inline .option-buttons {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+/* --- Centered layout: buttons centered --- */
+.option-group-centered .option-buttons {
+    justify-content: center;
+}
+.option-button {
+    background-color: transparent;
+    border: 1px solid var(--button-border);
+    border-radius: 6px;
+    color: var(--text-color);
+    padding: 8px 10px;
+    font-size: 0.9rem;
+    transition:
+        background-color 0.12s,
+        border-color 0.12s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 32px;
+    box-sizing: border-box;
+}
+#reset-settings-button {
+    width: 100%;
+    opacity: 0.6;
+    font-size: 0.8rem;
+    padding: 10px;
+    height: auto;
+}
+#reset-settings-button:hover {
+    opacity: 0.9;
+}
+.option-button {
+    cursor: pointer;
+}
+.option-button:disabled {
+    cursor: default;
+    opacity: 0.35;
+}
+
+/* --- Segmented control --- */
+.seg-group {
+    gap: 0;
+    background-color: var(--seg-bg, rgba(0, 0, 0, 0.06));
+    border-radius: 8px;
+    padding: 3px;
+}
+.seg-group .option-button {
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    font-size: 0.85rem;
+    padding: 7px 10px;
+    color: var(--text-color);
+    opacity: 0.7;
+}
+.seg-group .option-button.selected {
+    background-color: var(--button-bg);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+    opacity: 1;
+    font-weight: 500;
+}
+
+/* --- Theme swatches --- */
+.theme-swatches {
+    gap: 0.5rem;
+    justify-content: center;
+}
+.theme-swatch {
+    flex: 0 0 auto !important;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    border: none !important;
+    background: transparent !important;
+    padding: 4px !important;
+    border-radius: 0 !important;
+    height: auto !important;
+    transition: none;
+}
+.theme-swatch .swatch {
+    display: block;
+    width: 44px;
+    height: 24px;
+    border-radius: 6px;
+    border: none;
+    box-sizing: border-box;
+    box-shadow: 0 0.5px 2px rgba(0, 0, 0, 0.15);
+}
+.theme-swatch .swatch-label {
+    font-size: 0.7rem;
+    opacity: 0.5;
+    color: var(--text-color);
+    border-bottom: 2px solid transparent;
+    padding-bottom: 1px;
+}
+.theme-swatch.selected .swatch-label {
+    opacity: 1;
+    border-bottom-color: var(--text-color);
+}
+
+/* Auto theme swatch: half light / half dark */
+.theme-swatch .swatch-auto {
+    background: transparent;
+    overflow: visible;
+    box-shadow: none;
+    clip-path: inset(0 round 6px);
+    filter: drop-shadow(0 0.5px 2px rgba(0, 0, 0, 0.15));
+    position: relative;
+}
+.theme-swatch .swatch-auto::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: #fff;
+    clip-path: polygon(0 0, 100% 0, 0% 100%);
+}
+.theme-swatch .swatch-auto::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: #1a1a1a;
+    clip-path: polygon(100% 0, 100% 100%, 0% 100%);
+}
+
+/* --- Font group --- */
+#font-group-buttons {
+    gap: 0.5rem;
+    align-items: center;
+}
+#font-group-buttons .option-button {
+    padding: 0 8px;
+    height: 34px;
+    line-height: 1;
+    position: relative;
+    border: none;
+    border-radius: 0;
+    background-color: transparent;
+    border-bottom: 2px solid transparent;
+    opacity: 0.55;
+    color: var(--text-color);
+    transition: none;
+}
+#font-group-buttons .option-button.selected {
+    border-bottom-color: var(--text-color);
+    opacity: 1;
+}
+
+/* --- Font size buttons --- */
+#font-size-buttons {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    justify-content: center;
+}
+#font-size-buttons .fs-btn {
+    flex: 0 0 auto;
+    width: 40px;
+    border-radius: 6px;
+    border: 1px solid var(--button-border);
+    background: transparent;
+    font-weight: 500;
+}
+#font-size-buttons .fs-btn:active {
+    background-color: var(--header-button-bg);
+}
+#font-size-buttons #font-size-display {
+    flex: 0 0 90px;
+    width: 90px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 500;
+    opacity: 0.8;
+    overflow: hidden;
+}
+
+/* --- Icon buttons (alignment & spacing) --- */
+.seg-group .align-icon,
+.seg-group .lh-icon {
+    padding: 0 8px;
+}
+.seg-group .align-icon svg,
+.seg-group .lh-icon svg {
+    display: block;
+}
+
+/* --- TOC panel --- */
+#toc-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 280px;
+    height: 100%;
+    background-color: var(--panel-bg-color);
+    color: var(--text-color);
+    border-left: 1px solid var(--panel-border-color);
+    transform: translateX(100%);
+    transition: none;
+    z-index: 1001;
+    display: flex;
+    flex-direction: column;
+}
+#toc-panel.open {
+    transform: translateX(0);
+}
+#toc-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid var(--panel-border-color);
+}
+#toc-header h2 {
+    margin: 0;
+    font-size: 1.2rem;
+}
+#toc-header button {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--text-color);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+#toc-body {
+    padding: 0.5rem 1rem 1rem;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    flex: 1;
+}
+
+#toc-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+#toc-list li {
+    margin-bottom: 0.5rem;
+}
+#toc-list ul {
+    list-style: none;
+    padding-left: 1rem;
+    margin: 0;
+}
+#toc-list a {
+    display: block;
+    color: var(--text-color);
+    text-decoration: none;
+    font-size: 0.9rem;
+    padding: 0.25rem 0;
+}
+#toc-list a:hover {
+    text-decoration: none;
+    background-color: var(--header-button-bg);
+}
+#toc-list a.toc-current {
+    font-weight: bold;
+    background-color: var(--header-button-bg);
+}
+
+/* --- Overlay --- */
+#overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.3);
+    opacity: 0;
+    pointer-events: none;
+    transition: none;
+    z-index: 1000;
+}
+#overlay.visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* ===================================================================
+   8. Modal (note popups)
+   =================================================================== */
+
+#note-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+}
+#note-modal.open {
+    display: flex;
+}
+#modal-content {
+    background-color: var(--panel-bg-color);
+    color: var(--text-color);
+    padding: 1rem;
+    max-width: 600px;
+    max-height: 80vh;
+    overflow-y: auto;
+    border-radius: 4px;
+    position: relative;
+}
+#modal-close {
+    position: absolute;
+    top: 0.25rem;
+    right: 0.25rem;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--text-color);
+    cursor: pointer;
+}
+#modal-content p {
+    margin: 0.5em 0;
+}
+
+/* ===================================================================
+   9. Theme swatch colours (handled via inline styles on .swatch spans)
+   =================================================================== */
+
+/* ===================================================================
+   10. Chrome visibility (hide header icons & progress footer)
+   =================================================================== */
+
+.chrome-hidden #header-icons,
+.chrome-hidden #progress-footer {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: none;
+}
+
+/* Reveal chrome when hovering over the header area (desktop only).
+   On touch devices the invisible header must not steal taps from backrefs. */
+@media (hover: hover) and (pointer: fine) {
+    .chrome-hidden #reader-header {
+        pointer-events: auto;
+    }
+}
+
+/* ===================================================================
+   11. Chapter mode (one chapter at a time)
+   =================================================================== */
+
+/* In chapter mode, hide every section by default.
+   JS marks the current chapter with .current-chapter and its
+   DOM ancestors with .ancestor-chapter to override this. */
+#book-container.mode-chapter #book-content section {
+    display: none;
+}
+
+/* Current chapter section: flex column to push chapter-nav to bottom */
+#book-container.mode-chapter #book-content section.current-chapter {
+    display: flex;
+    flex-direction: column;
+    min-height: 95vh;
+    min-height: 95dvh;
+    box-sizing: border-box;
+}
+#book-container.mode-chapter #book-content section.current-chapter > * {
+    margin-bottom: 0;
+}
+
+/* Ancestor sections: visible as containers but own content hidden */
+#book-container.mode-chapter #book-content section.ancestor-chapter {
+    display: block;
+}
+#book-container.mode-chapter
+    #book-content
+    section.ancestor-chapter
+    > *:not(section) {
+    display: none !important;
+}
+
+/* Chapter nav: injected at the end of each section, pushed to bottom */
+.chapter-nav {
+    display: none;
+    margin-top: auto;
+    padding: 1.5rem 1rem 2.5rem;
+}
+
+/* Show chapter nav only in chapter mode */
+#book-container.mode-chapter .chapter-nav {
+    display: flex;
+    justify-content: space-between;
+    gap: 3rem;
+    max-width: 36rem;
+    margin-left: auto;
+    margin-right: auto;
+}
+@media (min-width: 901px) {
+    #book-container.mode-chapter .chapter-nav {
+        gap: 10rem;
+    }
+}
+
+.chapter-nav-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35em;
+    padding: 0.6rem 0.7rem;
+    border: 1px solid var(--panel-border-color, var(--border-color));
+    border-radius: 6px;
+    background-color: var(--panel-bg-color, var(--bg-color));
+    color: var(--text-color);
+    cursor: pointer;
+    font-size: 1rem;
+    line-height: 1.3;
+    text-align: center;
+    white-space: nowrap;
+}
+.chapter-nav-btn .nav-arrow {
+    width: 1.7em;
+    height: 1.7em;
+    fill: currentColor;
+    flex-shrink: 0;
+    margin: -0.35em -0.3em;
+}
+.chapter-nav-btn:hover {
+    background-color: var(--btn-hover-bg);
+}
+
+/* Reset notes section margin in chapter mode (standalone view) */
+#book-container.mode-chapter #book-content section.notes {
+    margin-top: 0;
+}
+
+/* Scroll mode: keep the last footnote off the very bottom of the viewport. */
+#book-container.mode-scroll #book-content section.notes {
+    padding-bottom: 4rem;
+}
+
+/* Chapter mode: no extra padding — chapter-nav provides bottom spacing */
+#book-container.mode-chapter #book-content {
+    padding-bottom: 0;
+}
+
+/* Chapter mode: use dvh to match the real visible viewport and avoid
+   extra scrollable space below nav buttons on mobile Chrome. */
+#book-container.mode-chapter {
+    min-height: 100dvh;
+}
+
+/* Disable Chrome scroll-anchoring in chapter mode so scrollTo(0,0)
+   actually sticks after a section swap. */
+body.mode-chapter {
+    overflow-anchor: none;
+}
+
+/* Reading mode seg-group: allow buttons to shrink so three fit */
+#reading-mode-group .option-title {
+    flex: 0 0 auto;
+}
+#reading-mode-group .seg-group {
+    flex: 1 1 0;
+    min-width: 0;
+    overflow: hidden;
+}
+#reading-mode-group .seg-group .option-button {
+    flex: 1 1 0;
+    min-width: 0;
+    text-align: center;
+    padding-left: 4px;
+    padding-right: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ===================================================================
+   12. Page mode (pagination, columns, baseline grid, nav, footer)
+   =================================================================== */
+
+body.mode-page {
+    overflow: hidden;
+    overscroll-behavior: none;
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    touch-action: pan-x;
+    --page-nav-hit-zone: clamp(40px, 4vw, 56px);
+    --page-nav-hit-zone-desktop: 80px;
+    --page-nav-safe: calc(clamp(40px, 4vw, 56px) + 6px);
+}
+
+#book-container.mode-page {
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+#book-container.mode-page #book-content {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    margin: 0 !important;
+    height: 100%;
+    overflow: hidden;
+    column-fill: auto;
+    column-gap: 5rem;
+    box-sizing: border-box;
+}
+
+/*
+ * Page-mode baseline grid overrides.
+ * Collapse paragraph margins, zero-out section spacing, and compensate
+ * heading line-height/margins so every element sits on the baseline grid.
+ */
+#book-container.mode-page #book-content p {
+    margin: 0;
+}
+#book-container.mode-page #book-content section {
+    margin: 0;
+    padding: 0;
+}
+#book-container.mode-page #book-content div.epigraph,
+#book-container.mode-page #book-content div.poem,
+#book-container.mode-page #book-content div.stanza {
+    margin: 0;
+}
+
+/* Start every new section on a new column in page mode (not in Firefox unfortunately).
+   Only adjacent sibling sections get the break — not the first child section inside
+   a parent, which naturally flows after headings/images/epigraphs. */
+#book-container.mode-page #book-content section.section {
+    break-before: column;
+    -webkit-column-break-before: always;
+}
+#book-container.mode-page #book-content h2 {
+    --lh: calc(var(--lh-ratio) * 1em / 1.6);
+    line-height: calc(var(--lh-ratio) / 1.6);
+    margin: var(--lh) 0;
+}
+#book-container.mode-page #book-content h3 {
+    --lh: calc(var(--lh-ratio) * 1em / 1.2);
+    line-height: calc(var(--lh-ratio) / 1.2);
+    margin: var(--lh) 0;
+}
+
+#book-container.mode-page #book-content .img-wrap {
+    margin: 0;
+    max-height: 100%;
+}
+#book-container.mode-page #book-content img {
+    max-height: 100%;
+}
+
+/* Safari multi-column fallback */
+@supports (-webkit-touch-callout: none) {
+    #book-container.mode-page #book-content {
+        column-count: auto;
+        -webkit-column-count: auto;
+    }
+}
+
+/* --- Page navigation arrows --- */
+.page-nav {
+    display: none;
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    width: var(--page-nav-hit-zone);
+    box-sizing: border-box;
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+    /* Navigation is handled by a JS document click handler that
+       yields to interactive elements.  page-nav is purely visual. */
+    pointer-events: none;
+}
+
+#page-nav-prev {
+    left: 0;
+    padding-right: calc(var(--page-nav-hit-zone) - var(--page-nav-safe));
+}
+#page-nav-next {
+    right: 0;
+    padding-left: calc(var(--page-nav-hit-zone) - var(--page-nav-safe));
+}
+.page-nav__arrow {
+    width: 16px;
+    height: 56px;
+    fill: var(--text-color);
+    opacity: 0;
+}
+body.mode-page .page-nav {
+    display: flex;
+}
+.page-nav.disabled {
+    display: none !important;
+}
+
+/* --- Progress footer --- */
+#progress-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 16px;
+    background-color: var(--panel-bg-color);
+    border-top: 1px solid var(--panel-border-color);
+    font-size: 0.8rem;
+    color: var(--text-color);
+    z-index: 100;
+    box-sizing: border-box;
+    /* GPU layer — avoids the "floating footer" glitch when Chrome mobile
+       toolbar slides in/out and the layout viewport resizes. */
+    transform: translateZ(0);
+}
+#progress-chapter {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-right: 12px;
+    opacity: 0.85;
+}
+#progress-value {
+    flex-shrink: 0;
+    font-weight: 500;
+    opacity: 0.85;
+}
+
+/* ===================================================================
+   13. Desktop / mobile overrides
+   =================================================================== */
+
+/* --- Desktop (>= 901px) --- */
+@media (min-width: 901px) {
+    body.mode-page {
+        --page-nav-hit-zone: var(--page-nav-hit-zone-desktop);
+    }
+
+    /* Touch screens (iPad, etc.): larger tap zones than a mouse needs. */
+    @media (pointer: coarse) {
+        body.mode-page {
+            --page-nav-hit-zone: min(20vw, 200px);
+        }
+    }
+
+    #book-container.mode-page #book-content {
+        column-count: 2;
+        padding-left: var(--page-nav-safe);
+        padding-right: var(--page-nav-safe);
+        padding-top: 12px;
+        padding-bottom: calc(
+            max(
+                32px,
+                env(safe-area-inset-bottom),
+                var(--viewport-offset, 0px) + 12px
+            )
+        );
+    }
+
+    /* User preference: force single column on wide screens.
+       Use column-width = full visible width (and column-count: auto) so
+       overflow content flows into off-screen sibling columns that can be
+       paginated via scrollLeft.  Plain column-count: 1 would stack content
+       vertically with no horizontal pagination. */
+    #book-container.mode-page.columns-1 #book-content {
+        column-count: auto;
+        column-width: calc(100vw - (var(--page-nav-safe) * 2));
+    }
+
+    .page-nav.hovered .page-nav__arrow {
+        opacity: 0.6;
+    }
+
+    #book-container.mode-scroll,
+    #book-container.mode-chapter {
+        padding-left: calc(48px + 3%);
+        padding-right: calc(48px + 3%);
+    }
+}
+
+/* Safari desktop fallback */
+@supports (-webkit-touch-callout: none) {
+    @media (min-width: 901px) {
+        #book-container.mode-page #book-content {
+            -webkit-column-width: calc(
+                (100vw - (var(--page-nav-safe) * 2) - 5rem) / 2
+            );
+            column-width: calc((100vw - (var(--page-nav-safe) * 2) - 5rem) / 2);
+        }
+        #book-container.mode-page.columns-1 #book-content {
+            -webkit-column-width: calc(100vw - (var(--page-nav-safe) * 2));
+            column-width: calc(100vw - (var(--page-nav-safe) * 2));
+        }
+    }
+}
+
+/* --- Mobile / tablet (<= 900px) --- */
+@media (max-width: 900px) {
+    /* Scroll mode */
+    html:has(body.mode-scroll),
+    html:has(body.mode-chapter) {
+        overscroll-behavior: none;
+    }
+    body.mode-scroll,
+    body.mode-chapter {
+        overflow-x: hidden;
+    }
+
+    #book-container.mode-scroll,
+    #book-container.mode-chapter {
+        padding-left: 20px;
+        padding-right: 20px;
+    }
+    #book-container.mode-scroll #book-content {
+        width: 100%;
+        max-width: 100%;
+        margin-left: auto;
+        margin-right: auto;
+        overflow-x: hidden;
+    }
+
+    /* Page mode */
+    body.mode-page {
+        --page-nav-hit-zone: calc(100vw / 4);
+    }
+    #book-container.mode-page #book-content {
+        column-count: 1;
+        /* Use margin instead of padding-left/right so Safari includes the
+           full column width in scrollWidth (it omits trailing padding). */
+        width: calc(100vw - 40px) !important;
+        max-width: calc(100vw - 40px) !important;
+        margin: 0 20px !important;
+        padding-top: calc(var(--lh, 1em) / 2);
+        padding-bottom: calc(
+            max(
+                var(--lh, 1em) / 2,
+                env(safe-area-inset-bottom),
+                var(--viewport-offset, 0px)
+            )
+        );
+    }
+    .page-nav__arrow {
+        display: none;
+    }
+
+    /* Safari mobile fallback */
+    @supports (-webkit-touch-callout: none) {
+        #book-container.mode-page #book-content {
+            -webkit-column-width: calc(100vw - 40px);
+            column-width: calc(100vw - 40px);
+        }
+    }
+
+    /* Panels: max-width so they don't fill the whole screen on laptops */
+    #settings-panel,
+    #toc-panel {
+        width: min(100vw, 360px);
+        height: 100vh;
+        height: 100dvh;
+    }
+
+    #columns-group {
+        display: none;
+    }
+}
+
+/* Full-screen panels & enlarged touch targets on real touch devices */
+@media (max-width: 900px) and (pointer: coarse) {
+    #settings-panel,
+    #toc-panel {
+        width: 100vw;
+        left: 0;
+        right: 0;
+        border-left: none;
+    }
+
+    #settings-header,
+    #toc-header {
+        padding-top: calc(12px + env(safe-area-inset-top));
+        padding-left: 16px;
+        padding-right: 16px;
+        padding-bottom: 12px;
+    }
+    #settings-header h2,
+    #toc-header h2 {
+        font-size: 1.35rem;
+    }
+
+    #settings-header button,
+    #toc-header button {
+        font-size: 2rem;
+        width: 44px;
+        height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    #settings-body {
+        padding-bottom: calc(16px + env(safe-area-inset-bottom));
+        -webkit-overflow-scrolling: touch;
+    }
+    #toc-body {
+        padding-bottom: calc(16px + env(safe-area-inset-bottom));
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .option-title {
+        font-size: 0.95rem;
+    }
+    .option-buttons {
+        gap: 0.6rem;
+    }
+    .option-button {
+        font-size: 1rem;
+        padding: 10px 10px;
+        min-height: 44px;
+    }
+    .seg-group {
+        gap: 0;
+        padding: 3px;
+    }
+    .seg-group .option-button {
+        font-size: 0.9rem;
+        padding: 10px;
+        min-height: 44px;
+    }
+    #font-size-buttons .fs-btn {
+        width: 3rem;
+        min-height: 44px;
+    }
+    #font-size-buttons span {
+        font-size: 1.05rem;
+    }
+    .theme-swatch .swatch {
+        width: 42px;
+        height: 42px;
+    }
+    .theme-swatch .swatch-label {
+        font-size: 0.75rem;
+    }
+    #font-group-buttons .option-button {
+        font-size: 1.05rem;
+        padding: 12px 8px;
+        min-height: 44px;
+    }
+    #toc-list a {
+        font-size: 1rem;
+        padding: 0.55rem 0.25rem;
+    }
+    #toc-list li {
+        margin-bottom: 0.25rem;
+    }
+}
+
+/* ===================================================================
+   14. Offline build additions
+   =================================================================== */
+
+/* Subtitle inside the book text */
+#book-content p.subtitle {
+    text-align: center;
+    font-weight: 600;
+    margin: 0.8em 0 0.6em;
+    text-indent: 0;
+}
+
+/* Title inside a poem / epigraph */
+#book-content p.stanza-title {
+    font-style: italic;
+    text-align: center;
+    text-indent: 0;
+    margin: 0.6em 0;
+}
+
+/* Annotation encountered inside the body (rare, not the title page) */
+#book-content .annotation-block {
+    margin: var(--lh) 0;
+    padding: 0 1em;
+    border-left: 2px solid var(--panel-border-color);
+}
+
+/* FB2 tables */
+#book-content table.fb2-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0.8em 0;
+    font-size: 0.92em;
+}
+#book-content table.fb2-table th,
+#book-content table.fb2-table td {
+    border: 1px solid var(--panel-border-color);
+    padding: 4px 8px;
+    vertical-align: top;
+}
+#book-content table.fb2-table th {
+    font-weight: 600;
+    background: var(--note-bg);
+}
+#book-content table.fb2-table p {
+    margin: 0;
+    text-indent: 0;
+}
+
+/* Note reference superscript look */
+#book-content a.note__ref {
+    vertical-align: super;
+    font-size: 0.75em;
+    line-height: 0;
+    padding: 0 0.1em;
+}
+
+/* Inline images inside paragraphs */
+#book-content img {
+    max-width: 100%;
+    border-radius: 4px;
+}
+
+/* Сообщение «книга не найдена» (битая/устаревшая ссылка) */
+#book-content .book-load-error {
+    max-width: 34rem;
+    margin: 15vh auto 0;
+    padding: 0 1.5rem;
+    text-align: center;
+}
+#book-content .book-load-error__title {
+    font-size: 1.4em;
+    font-weight: 600;
+    margin-bottom: 0.6em;
+    text-indent: 0;
+}
+#book-content .book-load-error p {
+    text-indent: 0;
+    margin-bottom: 0.8em;
+    color: var(--text-color);
+}
+#book-content .book-load-error button {
+    padding: 0.6em 1.2em;
+    border: 1px solid var(--button-border);
+    border-radius: 6px;
+    background: var(--button-bg);
+    color: var(--button-color);
+    cursor: pointer;
+    font-size: 1em;
+}
+#book-content .book-load-error button:hover {
+    border-color: var(--link-color);
+    color: var(--link-color);
+}
